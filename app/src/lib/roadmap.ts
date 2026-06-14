@@ -11,7 +11,7 @@ export interface RoadmapProgressInfo {
 const isUniversity = (item: AnyProgram): item is University =>
   "program" in item && typeof (item as University).program === "string"
 
-/** Checklist-based progress – mirror of the legacy roadmapProgress in shared.jsx */
+/** Checklist-based progress - mirror of the legacy roadmapProgress in shared.jsx */
 export function roadmapProgress(rm: RoadmapEntry, item: AnyProgram): RoadmapProgressInfo {
   const stages =
     item && isUniversity(item) && typeof window.buildRoadmapStages === "function"

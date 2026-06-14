@@ -4,7 +4,7 @@ import { Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /*
- * Minimal light/dark theme switch — a clean shadcn-style pill with a Sun on the
+ * Minimal light/dark theme switch – a clean shadcn-style pill with a Sun on the
  * left and a Moon on the right; the knob slides under the active icon.
  *
  * Adapted from a Next.js / next-themes component to this Vite app: the theme is
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  * Colours use the app's teal design tokens, not shadcn's background/input/ring.
  *
  * Geometry: track 64×32, knob 24. The outline is an *inset ring* (not a border)
- * so it doesn't shrink the content box — that keeps the knob travel symmetric
+ * so it doesn't shrink the content box – that keeps the knob travel symmetric
  * (4px gap on both rest positions) and the icon centres aligned to the knob.
  */
 

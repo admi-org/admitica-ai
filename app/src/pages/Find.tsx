@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Briefcase, Filter, GraduationCap, Search, Zap } from "lucide-react"
+import { Banknote, Briefcase, Filter, GraduationCap, Search } from "lucide-react"
 
 import { ProgramCard } from "@/components/ProgramCard"
 import { Button } from "@/components/ui/button"
@@ -180,7 +180,7 @@ export interface FindProps {
 
 const KIND_TABS: { id: Kind; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "uni", label: "Университеты", icon: GraduationCap },
-  { id: "grant", label: "Гранты", icon: Zap },
+  { id: "grant", label: "Гранты", icon: Banknote },
   { id: "intern", label: "Стажировки", icon: Briefcase },
 ]
 
@@ -223,7 +223,7 @@ export default function Find({ saved, priorities, toggleSave, togglePrio, openDe
   if (sort === "name") items = [...items].sort((a, b) => a.name.localeCompare(b.name))
   if (sort === "tuition") items = [...items].sort((a, b) => (a.tuitionMax || 0) - (b.tuitionMax || 0))
 
-  // Università Bocconi (u1) is the most fully-documented entry — keep it on top.
+  // Università Bocconi (u1) is the most fully-documented entry – keep it on top.
   if (kind === "uni") {
     const bi = items.findIndex((it) => it.id === "u1")
     if (bi > 0) items = [items[bi], ...items.slice(0, bi), ...items.slice(bi + 1)]

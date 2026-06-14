@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { motion, animate, useReducedMotion } from "framer-motion"
-import { ArrowRight, ArrowUpRight, Calendar, Check, Flame, RefreshCw, Sparkles } from "lucide-react"
+import { ArrowRight, ArrowUpRight, Calendar, Check, Flame, GraduationCap, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -24,14 +24,14 @@ const stagger = {
   show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
 }
 
-/* ---------- content (same as legacy home.jsx) ---------- */
+/* ---------- content ---------- */
 const QUOTES = [
-  { t: "Лучшее время посадить дерево было 20 лет назад. Второе лучшее время – сейчас.", a: "Китайская пословица" },
-  { t: "Вы становитесь тем, во что верите.", a: "Опра Уинфри" },
-  { t: "Образование – это самое мощное оружие, которым вы можете изменить мир.", a: "Нельсон Мандела" },
-  { t: "Не бойтесь медленно идти – бойтесь стоять на месте.", a: "Конфуций" },
-  { t: "Качество – это не действие, это привычка.", a: "Аристотель" },
-  { t: "Дисциплина – это мост между целями и достижениями.", a: "Джим Рон" },
+  { t: "Подавайтесь в несколько вузов: пара амбициозных, пара надёжных и один запасной.", a: "Список вузов" },
+  { t: "Начинайте эссе за месяц до дедлайна – на правки уходит больше времени, чем кажется.", a: "Эссе" },
+  { t: "Один сильный мотивационный текст лучше, чем десять шаблонных под копирку.", a: "Эссе" },
+  { t: "Проверьте требования к языку заранее: сертификат IELTS или TOEFL делается не за день.", a: "Документы" },
+  { t: "Списывайте дедлайны прямо из официального письма вуза, а не из чужих таблиц.", a: "Дедлайны" },
+  { t: "Просите рекомендателя заранее – за две-три недели, а не накануне срока.", a: "Рекомендации" },
 ]
 
 /* ---------- tiny count-up number ---------- */
@@ -83,7 +83,7 @@ function GoalCard({ roadmaps, onOpen }: { roadmaps: RoadmapEntry[]; onOpen: () =
       <div className="hero-glow pointer-events-none absolute inset-0 opacity-60" />
       <div className="relative flex h-full flex-col">
         <div className="flex items-center gap-2 text-xs font-semibold tracking-widest text-fg-muted uppercase">
-          <Sparkles className="size-3.5 text-accent-text" />
+          <GraduationCap className="size-3.5 text-accent-text" />
           Цель – поступление
         </div>
         <div className="mt-3 text-6xl font-bold tracking-tight sm:text-7xl">
@@ -104,7 +104,7 @@ function GoalCard({ roadmaps, onOpen }: { roadmaps: RoadmapEntry[]; onOpen: () =
                 Сейчас: <span className="font-semibold text-fg">{current.item.name}</span>
                 <br />
                 Этап {Math.min(current.p.done + 1, current.p.total)} из {current.p.total}
-                {current.p.currentName ? ` – ${current.p.currentName}` : " – всё выполнено"}
+                {current.p.currentName ? `: ${current.p.currentName}` : " – всё выполнено"}
               </>
             ) : (
               "Добавь вуз в приоритеты, чтобы начать отслеживать прогресс."
@@ -157,7 +157,7 @@ function StreakCard() {
               <span className="text-4xl font-bold tracking-tight text-warning">{streak}</span>
               <span className="text-sm text-fg-muted">{pluralDay(streak)} подряд</span>
             </div>
-            <div className="mt-0.5 text-xs text-fg-faint">Так держать – заходи каждый день</div>
+            <div className="mt-0.5 text-xs text-fg-faint">Стрик растёт, если заходить каждый день</div>
           </div>
         </div>
 
@@ -210,12 +210,12 @@ function QuoteCard() {
         size="icon-sm"
         className="absolute top-4 right-4"
         onClick={() => setI(i + 1)}
-        aria-label="Другая цитата"
+        aria-label="Другой совет"
       >
         <RefreshCw />
       </Button>
       <div className="relative">
-        <div className="text-xs font-semibold tracking-widest text-accent-text uppercase">Цитата дня</div>
+        <div className="text-xs font-semibold tracking-widest text-accent-text uppercase">Совет дня</div>
         <motion.blockquote
           key={i}
           initial={{ opacity: 0, y: 8 }}
@@ -225,7 +225,7 @@ function QuoteCard() {
         >
           «{q.t}»
         </motion.blockquote>
-        <div className="mt-3 text-sm text-fg-muted">– {q.a}</div>
+        <div className="mt-3 text-sm text-fg-muted">{q.a}</div>
       </div>
     </Card>
   )
@@ -309,7 +309,7 @@ export default function Home({ name, priorities, savedIds, roadmaps, setTab, ope
             <span className="text-accent-text">.</span>
           </h1>
           <p className="mt-3 max-w-xl text-sm text-fg-muted sm:text-base">
-            Твой путь к поступлению в Европу – программы, дедлайны и прогресс в одном месте.
+            Программы, дедлайны и прогресс по заявкам – на одной странице.
           </p>
         </div>
         <Button onClick={() => setTab("find")} className="max-sm:hidden">
@@ -377,7 +377,7 @@ export default function Home({ name, priorities, savedIds, roadmaps, setTab, ope
         </Card>
       </motion.div>
 
-      {/* quote of the day – full-width banner */}
+      {/* tip of the day – full-width banner */}
       <motion.div variants={fadeUp} className="mt-4">
         <QuoteCard />
       </motion.div>
@@ -393,8 +393,8 @@ export default function Home({ name, priorities, savedIds, roadmaps, setTab, ope
                 lead: `${savedIds.length} сохранено`,
                 body:
                   savedIds.length < 5
-                    ? "Рекомендуем сохранить 8–12 программ для shortlist"
-                    : "Хороший shortlist – теперь приоритизируйте",
+                    ? "Сохраните 8–12 программ, чтобы было из чего выбирать"
+                    : "Программ достаточно – отметьте приоритетные",
                 bar: Math.min(100, savedIds.length * 10),
                 tab: "find" as Tab,
               },
@@ -407,7 +407,7 @@ export default function Home({ name, priorities, savedIds, roadmaps, setTab, ope
               {
                 label: "Резюме",
                 lead: "2 достижения",
-                body: "AI-помощник поможет оформить опыт в bullet points для европейских CV.",
+                body: "Оформите опыт списком пунктов в формате европейского резюме.",
                 tab: "resume" as Tab,
               },
             ] as { label: string; lead: string; body: string; bar?: number; tab: Tab }[]

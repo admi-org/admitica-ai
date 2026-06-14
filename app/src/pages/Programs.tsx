@@ -86,7 +86,7 @@ function Saved({
         <EmptyState
           icon={<Heart className="size-9" />}
           title="Ничего не сохранено"
-          text="Найдите программы и нажмите ❤️ на карточке, чтобы они появились здесь"
+          text="Нажмите на сердечко на карточке программы, и она появится здесь"
         />
       ) : (
         <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -483,7 +483,7 @@ function Priority({
   return (
     <div>
       <motion.div variants={fadeUp} className="mb-4 text-[13px] text-fg-muted">
-        Нажмите на вуз, чтобы раскрыть его роадмап. Перетаскивайте карточки за ручку – топ-3 видны на главной.
+        Нажмите на вуз, чтобы раскрыть его роадмап. Перетаскивайте карточки за ручку: первые три видны на главной.
       </motion.div>
       <span id="prio-dnd-hint" className="sr-only">
         Перетащите мышью или используйте стрелки вверх и вниз на ручке, чтобы изменить позицию в списке

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { ThemeSwitch } from "@/components/ui/theme-switch"
 import type { RoadmapEntry } from "@/legacy"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +21,8 @@ export interface SettingsDialogProps {
   setName: (n: string) => void
   plan: string
   setPlan: (p: string) => void
+  theme: "dark" | "light"
+  onToggleTheme: () => void
   savedIds: string[]
   priorities: string[]
   roadmaps: RoadmapEntry[]
@@ -42,7 +45,7 @@ const PLANS = ["Free", "Pro", "Premium"]
 /* Notification rows – static "on/off" demo switches, как в легаси */
 const NOTIFICATIONS: { label: string; on: boolean }[] = [
   { label: "Дедлайны программ", on: true },
-  { label: "Ежедневный стрик", on: true },
+  { label: "Напоминание заходить каждый день", on: true },
   { label: "Новые гранты", on: false },
 ]
 
@@ -61,6 +64,8 @@ export default function SettingsDialog({
   setName,
   plan,
   setPlan,
+  theme,
+  onToggleTheme,
   savedIds,
   priorities,
   roadmaps,
@@ -100,6 +105,15 @@ export default function SettingsDialog({
             </div>
           </motion.section>
 
+          {/* Внешний вид */}
+          <motion.section variants={fadeUp} className="mt-6 border-t border-border pt-5">
+            <SectionTitle>Внешний вид</SectionTitle>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-[13px]">Тема оформления</span>
+              <ThemeSwitch theme={theme} onToggle={onToggleTheme} />
+            </div>
+          </motion.section>
+
           {/* Подписка */}
           <motion.section variants={fadeUp} className="mt-6 border-t border-border pt-5">
             <SectionTitle>Подписка</SectionTitle>
@@ -117,8 +131,8 @@ export default function SettingsDialog({
               ))}
             </div>
             <p className="text-xs leading-relaxed text-fg-muted">
-              Pro: безлимитный AI-фидбэк по эссе, экспорт PDF, расширенные фильтры. Premium: 1:1
-              консультации с ментором, проверка эссе экспертом.
+              Pro: разбор эссе, экспорт в PDF, дополнительные фильтры. Premium: личные
+              консультации с ментором и проверка эссе экспертом.
             </p>
           </motion.section>
 

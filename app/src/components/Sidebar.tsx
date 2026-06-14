@@ -10,7 +10,6 @@ import {
   Settings,
 } from "lucide-react"
 
-import { ThemeSwitch } from "@/components/ui/theme-switch"
 import type { Tab } from "@/lib/nav"
 import { cn } from "@/lib/utils"
 
@@ -88,18 +87,12 @@ export interface SidebarProps {
   setTab: (t: Tab) => void
   name: string
   plan: string
-  theme: "dark" | "light"
-  onToggleTheme: () => void
   onSettings: () => void
   /** Slide-in entrance right after onboarding (mirrors the legacy animation). */
   animateIn?: boolean
 }
 
-function ThemeToggle({ theme, onToggle, className }: { theme: "dark" | "light"; onToggle: () => void; className?: string }) {
-  return <ThemeSwitch theme={theme} onToggle={onToggle} className={className} />
-}
-
-function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings }: SidebarProps) {
+function NavContent({ tab, setTab, name, plan, onSettings }: SidebarProps) {
   const [progExpanded, setProgExpanded] = useState(tab.startsWith("p_"))
   const initial = (name || "У").charAt(0).toUpperCase()
 
@@ -163,7 +156,7 @@ function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings 
 
       {/* socials */}
       <div className="px-5 pb-3">
-        <div className="mb-2 text-xs font-semibold tracking-widest text-fg-muted uppercase">Мы в соцсетях</div>
+        <div className="mb-2 text-xs font-semibold tracking-widest text-fg-muted uppercase">Соцсети</div>
         <div className="flex items-center gap-1">
           {SOCIALS.map((s) => (
             <a
@@ -177,7 +170,6 @@ function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings 
               {s.icon}
             </a>
           ))}
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} className="ml-auto" />
         </div>
       </div>
 
@@ -200,7 +192,7 @@ function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings 
 }
 
 export function Sidebar(props: SidebarProps) {
-  const { tab, setTab, name, theme, onToggleTheme, onSettings, animateIn } = props
+  const { tab, setTab, name, onSettings, animateIn } = props
   const initial = (name || "У").charAt(0).toUpperCase()
 
   return (
@@ -215,14 +207,13 @@ export function Sidebar(props: SidebarProps) {
         <NavContent {...props} />
       </motion.aside>
 
-      {/* Mobile top bar: logo · theme · profile (настройки) */}
+      {/* Mobile top bar: logo · profile (настройки) */}
       <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-bg/80 px-4 backdrop-blur-xl lg:hidden">
         <span className="text-base font-bold tracking-tight">
           Admitica<span className="text-accent-text">.</span>
         </span>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} className="ml-auto" />
         <button
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-semibold text-accent-fg outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          className="ml-auto grid size-8 shrink-0 place-items-center rounded-full bg-accent text-[13px] font-semibold text-accent-fg outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
           aria-label="Настройки профиля"
           onClick={onSettings}
         >

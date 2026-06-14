@@ -168,7 +168,7 @@ function SuggestionCard({
     <Card className="gap-0 border-accent/40 bg-accent-soft p-4">
       <div className="mb-2.5 flex items-center gap-2">
         <Sparkles className="size-3.5 text-accent-text" />
-        <strong className="text-[13px] font-semibold text-accent-text">AI оформил пункт</strong>
+        <strong className="text-[13px] font-semibold text-accent-text">Готовый пункт резюме</strong>
       </div>
       <div className="text-[15px] font-medium">{suggestion.title}</div>
       <div className="mt-1 text-[13px] text-fg-muted">{suggestion.org}</div>
@@ -214,7 +214,7 @@ export default function Resume() {
   const [msgs, setMsgs] = usePersist<ChatMsg[]>("chat_v2", [
     {
       from: "ai",
-      txt: "Привет! Я помогу собрать сильное резюме. Расскажите про достижение – олимпиада, стажировка, проект, лидерская роль и т.д. Я задам пару уточнений и оформлю это в готовый пункт CV.",
+      txt: "Расскажите про одно достижение – олимпиада, стажировка, проект, лидерская роль. Задам пару уточнений и соберу из этого готовый пункт резюме.",
     },
   ])
   const [input, setInput] = useState("")
@@ -330,7 +330,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
             ...prev,
             {
               from: "ai",
-              txt: "Я оформил это в готовый пункт резюме. Проверьте – можно сразу добавить или подправить:",
+              txt: "Собрал пункт резюме. Проверьте – можно добавить как есть или подправить:",
               suggestion: obj,
             },
           ])
@@ -341,7 +341,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
             ...prev,
             {
               from: "ai",
-              txt: "Спасибо! Чтобы оформить пункт, мне нужен ещё один момент: какой был конкретный результат – число, процент, место?",
+              txt: "Ещё один вопрос: какой был конкретный результат – число, процент, место?",
             },
           ])
         }
@@ -356,7 +356,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
     } catch {
       // Offline fallback
       const fallbacks = [
-        "Какой конкретный результат – число, %, место? Это сделает пункт сильнее.",
+        "Какой был конкретный результат – число, процент, место?",
         "Какая была ваша личная роль и что вы делали в команде?",
       ]
       setMsgs((prev) => [...prev, { from: "ai", txt: fallbacks[Math.min(nextTurn - 1, fallbacks.length - 1)] }])
@@ -371,7 +371,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
       ...m,
       {
         from: "ai",
-        txt: "✓ Добавил в резюме. Расскажите о следующем достижении или нажмите «Сбросить диалог», чтобы начать заново.",
+        txt: "Добавил в резюме. Расскажите о следующем достижении или нажмите «Сбросить», чтобы начать заново.",
       },
     ])
     toast("Достижение добавлено")
@@ -381,7 +381,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
     setMsgs([
       {
         from: "ai",
-        txt: "Поехали заново! Расскажите про любое достижение – академическое, профессиональное или общественное.",
+        txt: "Начнём заново. Расскажите про любое достижение – академическое, профессиональное или общественное.",
       },
     ])
     setTurnCount(0)
@@ -409,7 +409,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">Сборка резюме</h1>
           <p className="mt-2 max-w-xl text-sm text-fg-muted sm:text-base">
-            AI помогает превратить ваши истории в bullet points для европейских CV
+            Расскажите о достижениях – соберём из них пункты резюме для европейских университетов
           </p>
         </div>
         <div className="flex gap-2">
@@ -428,9 +428,9 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
           <Card className="flex h-[min(600px,72vh)] flex-col gap-0 overflow-hidden p-0">
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
               <div className="min-w-0">
-                <strong className="text-sm font-semibold">AI-помощник</strong>
+                <strong className="text-sm font-semibold">Помощник по резюме</strong>
                 {/* без truncate: на узком экране подпись переносится, а не обрезается */}
-                <div className="mt-0.5 text-xs text-fg-muted">Расскажите про достижение – AI оформит пункт CV</div>
+                <div className="mt-0.5 text-xs text-fg-muted">Расскажите про достижение – соберём из него пункт резюме</div>
               </div>
               <Button variant="ghost" size="sm" className="shrink-0" onClick={resetChat}>
                 <RefreshCw /> Сбросить
@@ -465,7 +465,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
             <div className="flex gap-2 border-t border-border p-3.5">
               <Input
                 className="flex-1"
-                placeholder={typing ? "AI печатает…" : "Расскажите о достижении…"}
+                placeholder={typing ? "Печатает…" : "Расскажите о достижении…"}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
@@ -484,7 +484,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
           <Card className="gap-0 border-accent/40 bg-accent-soft p-5">
             <div className="mb-2.5 flex items-center gap-2">
               <Sparkles className="size-3.5 text-accent-text" />
-              <strong className="text-[13px] font-semibold text-accent-text">Фидбек по всему CV</strong>
+              <strong className="text-[13px] font-semibold text-accent-text">Разбор всего резюме</strong>
             </div>
             <Label className="mb-1.5">Роль проверяющего</Label>
             <div className="flex items-stretch gap-2">
@@ -533,7 +533,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
           <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-3">
             {achievements.length === 0 && !editing && (
               <Card className="p-10 text-center text-sm text-fg-muted">
-                Пока пусто. Расскажите AI о достижении или добавьте вручную.
+                Пока пусто. Расскажите о достижении в чате слева или добавьте вручную.
               </Card>
             )}
             {achievements.map((a) => (
@@ -555,7 +555,7 @@ ${newMsgs.map((m) => `${m.from}: ${m.txt}`).join("\n")}`,
                       onClick={() => improveWithAI(a)}
                       disabled={improvingId === a.id}
                     >
-                      <Sparkles className="size-3" /> {improvingId === a.id ? "Улучшаю…" : "Улучшить с ИИ"}
+                      <Sparkles className="size-3" /> {improvingId === a.id ? "Обрабатываю…" : "Улучшить с ИИ"}
                     </button>
                     <span className="text-fg-faint">·</span>
                     <button

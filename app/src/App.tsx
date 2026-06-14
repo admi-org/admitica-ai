@@ -98,8 +98,6 @@ export default function App() {
           setTab={setTab}
           name={name}
           plan={plan}
-          theme={theme}
-          onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
           onSettings={() => setSettingsOpen(true)}
           animateIn={justOnboarded}
         />
@@ -168,6 +166,8 @@ export default function App() {
           setName={setName}
           plan={plan}
           setPlan={setPlan}
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
           savedIds={savedIds}
           priorities={priorities}
           roadmaps={roadmaps}

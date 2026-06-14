@@ -190,10 +190,10 @@ const COUNTRY_ORDER = [...COUNTRY_OPTS.map((o) => o.val), "any"]
 const COUNTRY_MAX = 3
 
 const AI_LINES = [
-  "Анализируем твой профиль...",
-  "Подбираем программы под твои баллы...",
-  "Проверяем стипендии и дедлайны...",
-  "Финализируем подборку...",
+  "Сверяем твои баллы с требованиями программ",
+  "Отбираем варианты в рамках бюджета",
+  "Проверяем стипендии и дедлайны",
+  "Собираем список",
 ]
 
 /* ---------- matching (ported 1:1 from legacy) ---------- */
@@ -858,8 +858,8 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                   {COLLECT_NAME ? (
                     <>
                       <div>
-                        <div className="text-lg font-semibold">Привет! Как тебя зовут?</div>
-                        <div className="mt-1.5 text-sm text-fg-muted">Мы персонализируем всё под тебя</div>
+                        <div className="text-lg font-semibold">Как тебя зовут?</div>
+                        <div className="mt-1.5 text-sm text-fg-muted">Будем обращаться по имени на протяжении подбора</div>
                       </div>
                       <Input
                         autoFocus
@@ -872,19 +872,19 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                         aria-label="Твоё имя"
                       />
                       <Button size="xl" onClick={submitName} disabled={!nameDraft.trim()}>
-                        Начать <ArrowRight />
+                        Начать
                       </Button>
                     </>
                   ) : (
                     <>
                       <div>
-                        <div className="text-lg font-semibold">Твой путь к поступлению в Европу</div>
+                        <div className="text-lg font-semibold">Подбор программ в Европе</div>
                         <div className="mt-1.5 text-sm text-fg-muted">
-                          Подберём программы, гранты и дедлайны под твои цели
+                          Ответь на пару вопросов – покажем подходящие программы, их стоимость и дедлайны
                         </div>
                       </div>
                       <Button size="xl" onClick={submitName}>
-                        Начать <ArrowRight />
+                        Начать
                       </Button>
                     </>
                   )}
@@ -1384,7 +1384,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
           <div>
             <Kicker>Бюджет</Kicker>
             <Heading>Сколько готов тратить в год?</Heading>
-            <Subtext>Включая стипендии, которые мы найдём</Subtext>
+            <Subtext>Сумма на обучение после стипендий, если они есть</Subtext>
             <div className={cn("mt-6 transition-opacity duration-300", profile.budgetUnknown && "pointer-events-none opacity-30")}>
               <motion.div
                 key={profile.budget}
@@ -1475,9 +1475,10 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, ease: EASE }}
-                    className="absolute inset-x-0 text-lg font-bold text-accent-text"
+                    className="absolute inset-x-0 inline-flex w-full items-center justify-center gap-1.5 text-lg font-bold text-accent-text"
                   >
-                    <Reel to={programs.length} /> программ найдено ✓
+                    <Reel to={programs.length} /> {plural(programs.length, "программа", "программы", "программ")} найдено
+                    <Check className="size-4" strokeWidth={3} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1491,7 +1492,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         return (
           <div>
             <Heading className="max-w-2xl">{displayName}, вот что подошло под твой профиль</Heading>
-            <Subtext>Основано на твоих баллах, бюджете и предпочтениях</Subtext>
+            <Subtext>Учли твои баллы, бюджет, направление и страны</Subtext>
 
             {/* Мобайл и планшет: вращающийся барабан – только свайп влево/вправо */}
             <UniWheel programs={programs} savedSel={savedSel} onToggleSave={toggleProgSave} />

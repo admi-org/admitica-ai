@@ -188,12 +188,12 @@ ${text}`,
         .filter((f): f is FeedbackItem => Boolean(f))
       if (items.length) {
         setFeedback(items.slice(0, 4))
-        toast("AI-замечания обновлены")
+        toast("Замечания обновлены")
       } else {
-        toast("Не удалось разобрать ответ AI")
+        toast("Не удалось разобрать ответ")
       }
     } catch (e) {
-      toast("Ошибка AI: " + (e instanceof Error ? e.message : ""))
+      toast("Не удалось проверить эссе: " + (e instanceof Error ? e.message : ""))
     } finally {
       setLoading(false)
     }
@@ -208,7 +208,7 @@ ${text}`,
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">Редактор эссе</h1>
           <p className="mt-2 max-w-xl text-sm text-fg-muted">
-            AI поможет с структурой, конкретикой и грамматикой. Черновики сохраняются автоматически.
+            Пишите эссе, запрашивайте замечания по структуре, конкретике и грамматике. Черновики сохраняются автоматически.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -220,7 +220,7 @@ ${text}`,
           </Button>
           <Button onClick={askAI} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {loading ? "AI думает…" : "Запросить AI-фидбэк"}
+            {loading ? "Проверяем…" : "Проверить эссе"}
           </Button>
         </div>
       </motion.div>
@@ -250,14 +250,14 @@ ${text}`,
                 <Star className="mx-auto size-9 text-fg-faint" />
                 <h2 className="mt-4 text-lg font-semibold">В приоритетах пока нет вузов</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-fg-muted">
-                  Добавьте университеты в приоритеты – для каждого здесь появится эссе с требованиями программы
+                  Добавьте университеты в приоритеты. Для каждого здесь появится эссе с требованиями программы.
                 </p>
               </div>
             </Card>
           ) : (
             <>
               <div className="mb-4 text-[13px] text-fg-muted">
-                Эссе под каждый вуз из ваших приоритетов – с требованиями конкретной программы.
+                Эссе под каждый вуз из ваших приоритетов, с требованиями конкретной программы.
               </div>
               <motion.div
                 variants={stagger}
