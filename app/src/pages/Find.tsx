@@ -223,6 +223,12 @@ export default function Find({ saved, priorities, toggleSave, togglePrio, openDe
   if (sort === "name") items = [...items].sort((a, b) => a.name.localeCompare(b.name))
   if (sort === "tuition") items = [...items].sort((a, b) => (a.tuitionMax || 0) - (b.tuitionMax || 0))
 
+  // Università Bocconi (u1) is the most fully-documented entry — keep it on top.
+  if (kind === "uni") {
+    const bi = items.findIndex((it) => it.id === "u1")
+    if (bi > 0) items = [items[bi], ...items.slice(0, bi), ...items.slice(bi + 1)]
+  }
+
   return (
     <motion.div variants={stagger} initial="hidden" animate="show">
       {/* page head */}

@@ -319,6 +319,10 @@ function buildMatches(profile: Profile): MatchedProgram[] {
   })
   // Relevance first; among equally relevant options, cheaper first (budget-conscious).
   scored.sort((a, b) => b.hard - a.hard || b.score - a.score || (a.u.tuitionMax || 0) - (b.u.tuitionMax || 0))
+  // Always surface Università Bocconi (u1) first when it qualifies for the budget –
+  // it has the fullest content, so we want it clicked first.
+  const bocconiAt = scored.findIndex((s) => s.u.id === "u1")
+  if (bocconiAt > 0) scored.unshift(scored.splice(bocconiAt, 1)[0])
   const top = scored.slice(0, 6)
   const programs = top.map(({ u, reasons }) => ({
     id: u.id,

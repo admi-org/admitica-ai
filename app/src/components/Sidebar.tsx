@@ -10,7 +10,7 @@ import {
   Settings,
 } from "lucide-react"
 
-import { CinematicThemeSwitcher } from "@/components/ui/cinematic-theme-switcher"
+import { ThemeSwitch } from "@/components/ui/theme-switch"
 import type { Tab } from "@/lib/nav"
 import { cn } from "@/lib/utils"
 
@@ -96,9 +96,7 @@ export interface SidebarProps {
 }
 
 function ThemeToggle({ theme, onToggle, className }: { theme: "dark" | "light"; onToggle: () => void; className?: string }) {
-  // The cinematic control is natively 104x64; scale it down to fit the sidebar
-  // header and the h-14 mobile top bar.
-  return <CinematicThemeSwitcher theme={theme} onToggle={onToggle} className={className} scale={0.6} />
+  return <ThemeSwitch theme={theme} onToggle={onToggle} className={className} />
 }
 
 function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings }: SidebarProps) {
@@ -113,7 +111,6 @@ function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings 
         <span className="text-lg font-bold tracking-tight">
           Admitica<span className="text-accent-text">.</span>
         </span>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} className="ml-auto" />
       </div>
 
       {/* nav */}
@@ -180,6 +177,7 @@ function NavContent({ tab, setTab, name, plan, theme, onToggleTheme, onSettings 
               {s.icon}
             </a>
           ))}
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} className="ml-auto" />
         </div>
       </div>
 
