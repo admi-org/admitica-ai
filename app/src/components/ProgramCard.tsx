@@ -93,7 +93,7 @@ export function ProgramCard({
         {/* meta */}
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-fg-muted">
           <span className="inline-flex min-w-0 items-center gap-1">
-            <MapPin className="size-3.5 shrink-0" /> {u.flag} {it.city || u.country}
+            <MapPin className="size-3.5 shrink-0" /> {it.city || u.country}
           </span>
           {it.degree && (
             <span className="inline-flex min-w-0 items-center gap-1">

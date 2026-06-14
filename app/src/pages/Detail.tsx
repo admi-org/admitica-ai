@@ -7,10 +7,11 @@ import {
   Calendar,
   Check,
   Heart,
+  Loader2,
   Minus,
+  RefreshCw,
   Star,
   Target,
-  X,
 } from "lucide-react"
 
 import { ProgramLogo } from "@/components/ProgramLogo"
@@ -21,7 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { UNI_CONTENT, type RichBlock, type UniSection } from "@/data/uniContent"
 import { deadlineLabel } from "@/lib/roadmap"
 import { readPersist } from "@/lib/persist"
-import type { AnyProgram, Grant, University } from "@/legacy"
+import type { Achievement, AnyProgram, Grant, University } from "@/legacy"
 import { cn } from "@/lib/utils"
 
 /* ---------- shared motion presets (ease-out, 200–300ms) ---------- */
@@ -63,134 +64,169 @@ function grantsForUni(u: University): Grant[] {
     .map((x) => x.g)
 }
 
-/* ---------- admission chances estimate (real, from the onboarding answers) ---------- */
+/* ---------- Uni-fit: AI two-way fit (how well the uni fits the student and the student fits the uni) ---------- */
 interface OnbProfile {
   gpa?: string | null
   gpaUnknown?: boolean
   english?: string
   budget?: string
   budgetUnknown?: boolean
-  langs?: { lang: string | null; level: string | null }[]
+  fields?: string[]
+  countries?: string[]
+  level?: string[]
+  grant?: boolean
+}
+interface UniFitResult {
+  uniToUser: { score: number; summary: string }
+  userToUni: { score: number; summary: string }
+  depends: string[]
 }
 
-const CEFR_BAND: Record<string, number> = { A1: 3, A2: 4, B1: 5, B2: 6.5, C1: 7.5, C2: 8.5 }
-const LANG_RU: Record<string, string> = {
-  DE: "немецкий", FR: "французский", NL: "нидерландский", DK: "датский", IT: "итальянский", ES: "испанский",
+const clampScore = (v: unknown): number => {
+  const n = Math.round(Number(v))
+  return isFinite(n) ? Math.max(0, Math.min(100, n)) : 0
 }
-const LANG_RU_GEN: Record<string, string> = {
-  DE: "немецкого", FR: "французского", NL: "нидерландского", DK: "датского", IT: "итальянского", ES: "испанского",
+// Normalise any em-dashes the model returns to the app's en-dash style.
+const endash = (s: string): string => s.replace(/—/g, "–")
+
+function buildUniFitPrompt(u: University, p: OnbProfile | null, essay: string, resume: Achievement[]): string {
+  const prof = p || {}
+  const resumeText = resume.length
+    ? resume.map((a, i) => `${i + 1}. ${a.title} – ${a.org}. ${a.desc} [${(a.skills || []).join(", ")}]`).join("\n")
+    : "(резюме пустое)"
+  return `Ты консультант по поступлению в зарубежные вузы. Оцени взаимное соответствие («Uni-fit») студента и вуза по двум направлениям. Верни ТОЛЬКО JSON без markdown:
+{"uniToUser":{"score":0-100,"summary":"1-2 предложения"},"userToUni":{"score":0-100,"summary":"1-2 предложения"},"depends":["чего не хватает для точной оценки"]}
+
+ВУЗ: ${u.name}, ${u.city}, ${u.country}. Программа: ${u.program} (${u.degree}), направление: ${u.field}. Язык обучения: ${u.language}. Стоимость: ${u.tuition}. Требования: оценки ${u.gpa}, язык ${u.ielts}. Стипендии: ${u.scholarship ? "есть" : "нет"}.
+
+АНКЕТА СТУДЕНТА: направления – ${(prof.fields || []).join(", ") || "не указаны"}; страны – ${(prof.countries || []).join(", ") || "не указаны"}; уровень – ${(prof.level || []).join(", ") || "не указан"}; бюджет – ${prof.budget || "не указан"}; средний балл – ${prof.gpaUnknown ? "не указан" : prof.gpa || "не указан"}; английский – ${prof.english || "не указан"}; нужна стипендия – ${prof.grant ? "да" : "нет"}.
+
+ЭССЕ ДЛЯ ЭТОЙ ПРОГРАММЫ: ${essay ? essay.slice(0, 1500) : "(не написано)"}
+
+РЕЗЮМЕ СТУДЕНТА:
+${resumeText}
+
+Правила:
+- uniToUser (насколько вуз подходит студенту): по совпадению направления, страны, уровня, бюджета, языка обучения и потребности в стипендии.
+- userToUni (насколько студент подходит вузу): по среднему баллу, английскому, КАЧЕСТВУ эссе и силе резюме относительно конкурентности программы.
+- Если эссе не написано или резюме пустое – снизь уверенность в userToUni и обязательно перечисли это простыми словами в "depends" (например: «эссе для этой программы не написано», «резюме пустое»).
+- Пиши по-русски, конкретно и по делу.`
 }
 
-function gpaFraction(s: string): number | null {
-  const m = s.match(/(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)/)
-  if (m) {
-    const a = parseFloat(m[1].replace(",", ".")),
-      b = parseFloat(m[2].replace(",", "."))
-    if (b > 0) return a / b
-  }
-  return null
-}
-function budgetNumber(s: string): number {
-  if (/∞|без огранич/i.test(s)) return Infinity
-  if (/беспл/i.test(s)) return 0
-  const d = s.replace(/[^0-9]/g, "")
-  return d ? parseInt(d, 10) : Infinity
-}
-
-type ChanceStatus = "ok" | "warn" | "risk" | "info"
-interface ChanceResult {
-  verdict: string
-  tone: ChanceStatus
-  factors: { status: ChanceStatus; text: string }[]
+function FitBar({ label, score, summary, className }: { label: string; score: number; summary: string; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[13px] font-medium">{label}</span>
+        <span className="text-sm font-bold text-accent-text">{score}/100</span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-fg/10">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${score}%` }} />
+      </div>
+      {summary && <p className="mt-1.5 text-[13px] leading-relaxed text-fg-muted">{summary}</p>}
+    </div>
+  )
 }
 
-/** Compare the student's onboarding answers against a university's stated requirements. */
-function estimateChances(u: University, p: OnbProfile | null): ChanceResult | null {
-  if (!p) return null
-  const factors: ChanceResult["factors"] = []
-  let score = 0
-  let compared = 0
+function UniFitCard({ uni }: { uni: University }) {
+  const [result, setResult] = useState<UniFitResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
-  // Budget vs tuition
-  if (!p.budgetUnknown && p.budget) {
-    const b = budgetNumber(p.budget)
-    if (isFinite(b) && typeof u.tuitionMax === "number") {
-      compared++
-      if (u.tuitionMax <= b) {
-        factors.push({ status: "ok", text: `Стоимость ${u.tuition} укладывается в твой бюджет` })
-        score++
-      } else if (u.tuitionMax <= b * 1.2) {
-        factors.push({ status: "warn", text: `Стоимость ${u.tuition} немного выше твоего бюджета` })
-      } else {
-        factors.push({ status: "risk", text: `Стоимость ${u.tuition} заметно выше твоего бюджета` })
-        score--
-      }
+  const profile = useMemo(() => readPersist<OnbProfile | null>("onboardingProfile", null), [])
+  const essay = useMemo(
+    () => (readPersist<Record<string, string>>("essayDrafts", {})["uni_" + uni.id] || "").trim(),
+    [uni.id],
+  )
+  const resume = useMemo(() => readPersist<Achievement[]>("achievements", []), [])
+  const hasEssay = essay.length > 30
+  const hasResume = resume.length > 0
+
+  const run = async () => {
+    if (loading) return
+    if (!window.ai?.complete) {
+      setError(true)
+      return
+    }
+    setLoading(true)
+    setError(false)
+    try {
+      const reply = await window.ai.complete(buildUniFitPrompt(uni, profile, essay, resume), {
+        temperature: 0.4,
+        maxTokens: 600,
+      })
+      const obj = window.ai.extractJson(reply) as Partial<UniFitResult> | null
+      const a = (obj?.uniToUser ?? {}) as { score?: unknown; summary?: unknown }
+      const b = (obj?.userToUni ?? {}) as { score?: unknown; summary?: unknown }
+      setResult({
+        uniToUser: { score: clampScore(a.score), summary: endash(String(a.summary ?? "")) },
+        userToUni: { score: clampScore(b.score), summary: endash(String(b.summary ?? "")) },
+        depends: Array.isArray(obj?.depends) ? obj!.depends!.map((d) => endash(String(d))) : [],
+      })
+
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // GPA vs requirement (only when both sides are numeric)
-  if (!p.gpaUnknown && p.gpa) {
-    const user = parseFloat(p.gpa)
-    const req = gpaFraction(u.gpa || "")
-    if (!isNaN(user) && req != null) {
-      compared++
-      const userFrac = user / 5
-      if (userFrac >= req) {
-        factors.push({ status: "ok", text: `Средний балл ${p.gpa} соответствует требованию (${u.gpa})` })
-        score++
-      } else if (userFrac >= req - 0.07) {
-        factors.push({ status: "warn", text: `Средний балл ${p.gpa} на границе требования (${u.gpa})` })
-      } else {
-        factors.push({ status: "risk", text: `Средний балл ${p.gpa} ниже требования (${u.gpa})` })
-        score--
-      }
-    } else if (u.gpa) {
-      factors.push({ status: "info", text: `Особые требования к оценкам: ${u.gpa}` })
-    }
-  }
+  return (
+    <Card className="gap-0 border-accent/20 bg-accent-soft p-6">
+      <div className="flex items-center gap-2">
+        <Target className="size-3.5 text-accent-text" />
+        <strong className="text-[13px] font-semibold text-accent-text">Uni-fit</strong>
+      </div>
 
-  // Language: a non-English requirement (e.g. "C1 DE") checks the student's extra languages; otherwise English
-  const langReq = (u.ielts || "").match(/\b([ABC][12])\s*(DE|FR|NL|DK|IT|ES)\b/i)
-  if (langReq) {
-    const code = langReq[2].toUpperCase()
-    const need = langReq[1].toUpperCase()
-    const ru = LANG_RU[code] || code
-    const ruGen = LANG_RU_GEN[code] || ru
-    const known = (p.langs || []).find((l) => l.lang && l.lang.toLowerCase().includes(ru.slice(0, 4)))
-    if (known?.level && (CEFR_BAND[known.level] ?? 0) >= (CEFR_BAND[need] ?? 99)) {
-      compared++
-      factors.push({ status: "ok", text: `Ты указал ${ru} на уровне ${known.level} (нужно ${need})` })
-      score++
-    } else if (known?.level) {
-      compared++
-      factors.push({ status: "warn", text: `Программа на ${ruGen}: твой уровень ${known.level} ниже нужного ${need}` })
-    } else {
-      factors.push({ status: "info", text: `Программа требует ${ruGen} на уровне ${need}` })
-    }
-  } else if (p.english) {
-    const m = (u.ielts || "").match(/(\d+(?:\.\d+)?)/)
-    const reqBand = m ? parseFloat(m[1]) : NaN
-    const userBand = CEFR_BAND[p.english]
-    if (!isNaN(reqBand) && userBand != null) {
-      compared++
-      if (userBand >= reqBand) {
-        factors.push({ status: "ok", text: `Английского ${p.english} достаточно (нужно ~${u.ielts})` })
-        score++
-      } else if (userBand >= reqBand - 0.75) {
-        factors.push({ status: "warn", text: `Английский ${p.english} близок к требованию (${u.ielts})` })
-      } else {
-        factors.push({ status: "risk", text: `Английский ${p.english} ниже требования (${u.ielts})` })
-        score--
-      }
-    }
-  }
-
-  if (compared === 0) return factors.length ? { verdict: "Сложно оценить по твоим данным", tone: "info", factors } : null
-
-  const risks = factors.filter((f) => f.status === "risk").length
-  if (score >= 1 && risks === 0) return { verdict: "Шансы хорошие", tone: "ok", factors }
-  if (risks >= 2 || score <= -1) return { verdict: "Шансы невысокие", tone: "risk", factors }
-  return { verdict: "Шансы средние", tone: "warn", factors }
+      {!result ? (
+        <>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-fg-muted">
+            ИИ оценит, насколько вуз подходит тебе и насколько ты подходишь вузу – по анкете, эссе и резюме.
+          </p>
+          {(!hasEssay || !hasResume) && (
+            <p className="mt-2 text-xs leading-relaxed text-fg-faint">
+              Оценка «ты вузу» зависит от {!hasEssay ? "эссе для этой программы" : ""}
+              {!hasEssay && !hasResume ? " и " : ""}
+              {!hasResume ? "резюме" : ""} – пока {!hasEssay && !hasResume ? "не заполнены" : "не заполнено"}.
+            </p>
+          )}
+          <Button size="sm" className="mt-3.5 w-full" onClick={run} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : <Target />}
+            {loading ? "Считаем…" : "Рассчитать Uni-fit"}
+          </Button>
+          {error && (
+            <p className="mt-2 text-xs leading-relaxed text-danger">
+              Не удалось рассчитать. Проверь подключение AI и попробуй ещё раз.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <FitBar
+            label="Вуз подходит тебе"
+            score={result.uniToUser.score}
+            summary={result.uniToUser.summary}
+            className="mt-3"
+          />
+          <FitBar
+            label="Ты подходишь вузу"
+            score={result.userToUni.score}
+            summary={result.userToUni.summary}
+            className="mt-4"
+          />
+          {result.depends.length > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-fg-faint">
+              Точнее будет, если добавить: {result.depends.join(", ")}.
+            </p>
+          )}
+          <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={run} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+            Пересчитать
+          </Button>
+        </>
+      )}
+    </Card>
+  )
 }
 
 /* ---------- small pieces ---------- */
@@ -421,8 +457,6 @@ export default function Detail({
   const it = item
   const uniGrants = "program" in it ? grantsForUni(it) : []
   const content = UNI_CONTENT[it.id]
-  const onbProfile = useMemo(() => readPersist<OnbProfile | null>("onboardingProfile", null), [])
-  const chances = "program" in it ? estimateChances(it, onbProfile) : null
 
   // Full report blocks are code-split – load on demand for this uni.
   const [blocks, setBlocks] = useState<RichBlock[] | null>(null)
@@ -462,7 +496,7 @@ export default function Detail({
   const facts: { k: string; v: string }[] =
     "program" in it
       ? [
-          { k: "Город", v: `${it.flag} ${it.city}, ${it.country}` },
+          { k: "Город", v: `${it.city}, ${it.country}` },
           { k: "Программа", v: it.program },
           { k: "Степень", v: it.degree },
           { k: "Направление", v: it.field },
@@ -471,7 +505,7 @@ export default function Detail({
         ]
       : "funding" in it
         ? [
-            { k: "Страна", v: `${it.flag} ${it.country}` },
+            { k: "Страна", v: it.country },
             { k: "Организация", v: it.org },
             { k: "Размер", v: it.amount },
             { k: "Покрытие", v: it.funding },
@@ -479,7 +513,7 @@ export default function Detail({
             { k: "Направление", v: it.field },
           ]
         : [
-            { k: "Город", v: `${it.flag} ${it.city}` },
+            { k: "Город", v: it.city },
             { k: "Роль", v: it.role },
             { k: "Индустрия", v: it.industry },
             { k: "Стипендия", v: it.stipend },
@@ -691,50 +725,9 @@ export default function Detail({
             </motion.div>
           )}
 
-          {chances && (
+          {"program" in it && (
             <motion.div variants={fadeUp}>
-              <Card className="gap-0 border-accent/20 bg-accent-soft p-6">
-                <div className="flex items-center gap-2">
-                  <Target className="size-3.5 text-accent-text" />
-                  <strong className="text-[13px] font-semibold text-accent-text">Оценка шансов</strong>
-                </div>
-                <div
-                  className={cn(
-                    "mt-2 text-sm font-semibold",
-                    chances.tone === "ok"
-                      ? "text-positive"
-                      : chances.tone === "warn"
-                        ? "text-warning"
-                        : chances.tone === "risk"
-                          ? "text-danger"
-                          : "text-fg",
-                  )}
-                >
-                  {chances.verdict}
-                </div>
-                <ul className="mt-2.5 flex flex-col gap-2">
-                  {chances.factors.map((f, i) => {
-                    const Icon = f.status === "ok" ? Check : f.status === "risk" ? X : Minus
-                    const color =
-                      f.status === "ok"
-                        ? "text-positive"
-                        : f.status === "warn"
-                          ? "text-warning"
-                          : f.status === "risk"
-                            ? "text-danger"
-                            : "text-fg-faint"
-                    return (
-                      <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-fg-muted">
-                        <Icon className={cn("mt-0.5 size-3.5 shrink-0", color)} />
-                        <span>{f.text}</span>
-                      </li>
-                    )
-                  })}
-                </ul>
-                <p className="mt-3 text-xs leading-relaxed text-fg-faint">
-                  Прикидка по твоим данным из подбора. Итог зависит ещё от мотивационного письма, рекомендаций и конкурса в этом году.
-                </p>
-              </Card>
+              <UniFitCard uni={it} />
             </motion.div>
           )}
 

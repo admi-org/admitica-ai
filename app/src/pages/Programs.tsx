@@ -269,7 +269,7 @@ function PriorityRow({
           <div className="min-w-0 flex-1 basis-40">
             <div className="truncate text-sm font-medium">{p.name}</div>
             <div className="truncate text-xs text-fg-muted">
-              {isUni(p) ? p.program : isIntern(p) ? p.role : p.org} · {p.flag} {p.country}
+              {isUni(p) ? p.program : isIntern(p) ? p.role : p.org} · {p.country}
             </div>
             {prog && (
               <div className="mt-1.5 flex items-center gap-2">

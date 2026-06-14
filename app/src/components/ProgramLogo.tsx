@@ -29,9 +29,8 @@ export function ProgramLogo({ item, className }: { item: LogoItem; className?: s
         style={{ background: `${color}14`, border: `1px solid ${color}33` }}
         aria-hidden="true"
       >
-        <span className="text-[1.4em] leading-none" style={{ filter: "saturate(1.1)" }}>
-          {item.flag || "🏳️"}
-        </span>
+        {/* Neutral placeholder ring – real SVG flags will replace this later. */}
+        <span className="block h-1/2 w-1/2 rounded-full border-2" style={{ borderColor: color }} />
       </div>
     </>
   )

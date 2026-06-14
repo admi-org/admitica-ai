@@ -1345,7 +1345,9 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                     onClick={() => toggleCountry(o.val)}
                     className="min-h-16 p-3.5"
                   >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-card-2 text-xl">{o.flag}</span>
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-card-2">
+                      <span aria-hidden="true" className="size-5 rounded-full border-2 border-accent-text" />
+                    </span>
                     <span className="pr-6 text-[15px] font-medium">{o.name}</span>
                   </OptionCard>
                 )
@@ -1601,7 +1603,7 @@ function ResultCard({
         <div className="flex items-start justify-between gap-2">
           <span className="text-[15px] leading-snug font-semibold">{p.university}</span>
           <span className="text-xs whitespace-nowrap text-fg-muted">
-            {p.flag} {p.country}
+            {p.country}
           </span>
         </div>
         <div className="mt-1.5 text-sm font-medium">{p.program}</div>
