@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Segmented } from "@/components/ui/segmented"
 import { useToast } from "@/components/ui/toast"
-import { usePersist } from "@/lib/persist"
+import { readPersist, usePersist } from "@/lib/persist"
 import { cn } from "@/lib/utils"
 import type { EssayRequirements, University } from "@/legacy"
 
@@ -63,6 +63,19 @@ const initialDrafts = (): Record<string, string> => {
     else map[p.id] = ""
   })
   return map
+}
+
+/** Best essay the student wrote for a university: checks the Bank key ("uni_<id>")
+ *  and any starter prompt that targets this uni. Returns the longest non-empty draft. */
+export function essayForUni(uniId: string): string {
+  const drafts = readPersist<Record<string, string>>("essayDrafts", {})
+  const keys = ["uni_" + uniId, ...ESSAY_PROMPTS.filter((p) => p.uniId === uniId).map((p) => p.id)]
+  let best = ""
+  for (const k of keys) {
+    const t = (drafts[k] || "").trim()
+    if (t.length > best.length) best = t
+  }
+  return best
 }
 
 const getReqs = (u: University | null | undefined): EssayRequirements | null =>

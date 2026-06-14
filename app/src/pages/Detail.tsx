@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { UNI_CONTENT, type RichBlock, type UniSection } from "@/data/uniContent"
 import { deadlineLabel } from "@/lib/roadmap"
 import { readPersist } from "@/lib/persist"
+import { essayForUni } from "@/pages/Essay"
 import type { Achievement, AnyProgram, Grant, University } from "@/legacy"
 import { cn } from "@/lib/utils"
 
@@ -231,10 +232,7 @@ function UniFitPanel({ uni }: { uni: University }) {
   const [error, setError] = useState(false)
 
   const profile = useMemo(() => readPersist<OnbProfile | null>("onboardingProfile", null), [])
-  const essay = useMemo(
-    () => (readPersist<Record<string, string>>("essayDrafts", {})["uni_" + uni.id] || "").trim(),
-    [uni.id],
-  )
+  const essay = useMemo(() => essayForUni(uni.id), [uni.id])
   const resume = useMemo(() => readPersist<Achievement[]>("achievements", []), [])
   const hasEssay = essay.length > 30
   const hasResume = resume.length > 0
