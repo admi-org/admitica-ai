@@ -87,7 +87,7 @@ interface FitDim {
 interface UniFitResult {
   uniToUser: FitDim
   userToUni: FitDim
-  depends: string[]
+  nextSteps: string[]
 }
 
 const clampScore = (v: unknown): number => {
@@ -110,23 +110,30 @@ function buildUniFitPrompt(u: University, p: OnbProfile | null, essay: string, r
   const resumeText = resume.length
     ? resume.map((a, i) => `${i + 1}. ${a.title} – ${a.org}. ${a.desc} [${(a.skills || []).join(", ")}]`).join("\n")
     : "(резюме пустое)"
-  return `Ты консультант по поступлению в зарубежные вузы. Оцени взаимное соответствие («Uni-fit») студента и вуза по двум направлениям. Верни ТОЛЬКО JSON без markdown:
-{"uniToUser":{"score":0-100,"points":["краткий фактор 4-9 слов","ещё один"]},"userToUni":{"score":0-100,"points":["..."]},"depends":["чего не хватает для точной оценки"]}
+  return `Ты консультант по поступлению в зарубежные вузы. Оцени взаимное соответствие («Uni-fit») студента и вуза и предложи следующие шаги. Верни ТОЛЬКО JSON без markdown:
+{"uniToUser":{"score":0-100,"points":["краткий фактор 4-9 слов","ещё один"]},"userToUni":{"score":0-100,"points":["..."]},"nextSteps":["конкретный шаг со ссылкой на функцию Admitica"]}
 
 ВУЗ: ${u.name}, ${u.city}, ${u.country}. Программа: ${u.program} (${u.degree}), направление: ${u.field}. Язык обучения: ${u.language}. Стоимость: ${u.tuition}. Требования: оценки ${u.gpa}, язык ${u.ielts}. Стипендии: ${u.scholarship ? "есть" : "нет"}.
 
-АНКЕТА СТУДЕНТА: направления – ${(prof.fields || []).join(", ") || "не указаны"}; страны – ${(prof.countries || []).join(", ") || "не указаны"}; уровень – ${(prof.level || []).join(", ") || "не указан"}; бюджет – ${prof.budget || "не указан"}; средний балл – ${prof.gpaUnknown ? "не указан" : prof.gpa || "не указан"}; английский – ${prof.english || "не указан"}; сертификат – ${prof.cert ? prof.cert + (prof.certScore ? " " + prof.certScore : "") : "не указан"}; нужна стипендия – ${prof.grant ? "да" : "нет"}.
+АНКЕТА СТУДЕНТА: направления – ${(prof.fields || []).join(", ") || "не указаны"}; страны – ${(prof.countries || []).join(", ") || "не указаны"}; уровень – ${(prof.level || []).join(", ") || "не указан"}; бюджет – ${prof.budget || "не указан"}; средний балл – ${prof.gpaUnknown ? "не указан" : prof.gpa ? prof.gpa + " из 5 (российская шкала, 5 = отлично)" : "не указан"}; английский – ${prof.english || "не указан"}; сертификат – ${prof.cert ? prof.cert + (prof.certScore ? " " + prof.certScore : "") : "не указан"}; нужна стипендия – ${prof.grant ? "да" : "нет"}.
 
 ЭССЕ ДЛЯ ЭТОЙ ПРОГРАММЫ: ${essay ? essay.slice(0, 1500) : "(не написано)"}
 
 РЕЗЮМЕ СТУДЕНТА:
 ${resumeText}
 
+ФУНКЦИИ ADMITICA (ссылайся на них в nextSteps):
+- «Подобрать программу» – каталог вузов, грантов и стажировок с фильтрами.
+- «Мои программы → Приоритеты» – дорожная карта (роадмап) поступления по этапам.
+- «Редактор эссе» – черновики эссе под требования программы и проверка ИИ.
+- «Сборка резюме» – резюме для европейских вузов и проверка ИИ.
+
 Правила:
+- ОЦЕНКИ: балл студента по 5-балльной шкале (5 = максимум ≈ 100%). Перед сравнением конвертируй в шкалу вуза: 5/5 ≈ 10/10 ≈ 100%, требование 8/10 = 80%, то есть 5/5 ВЫШЕ порога. Не сравнивай числа напрямую.
 - uniToUser (насколько вуз подходит студенту): по совпадению направления, страны, уровня, бюджета, языка обучения и потребности в стипендии.
 - userToUni (насколько студент подходит вузу): по среднему баллу, английскому, КАЧЕСТВУ эссе и силе резюме относительно конкурентности программы.
-- В «points» дай по 2-3 КОРОТКИХ пункта строго по делу (до ~8 слов): суть + цифра, где она важна. Без воды, без расплывчатых фраз («больше требуемого», «хорошо подходит») и без длинных пояснений.
-- В "depends" перечисли конкретно, чего не хватает для точной оценки (например «эссе для этой программы не написано», «в резюме нет измеримых результатов», «не указан балл IELTS»). Если эссе нет или резюме пустое, снизь уверенность в userToUni.
+- points: по 2-3 КОРОТКИХ пункта строго по делу (до ~8 слов), суть + цифра где важна. Без воды и расплывчатых фраз.
+- nextSteps: 2-4 конкретных шага под пробелы студента, обязательно со ссылкой на функции Admitica (например «Построй роадмап для этого вуза в Приоритетах», «Напиши эссе в Редакторе эссе под требования программы», «Добавь измеримые результаты в Резюме», «Подбери похожие вузы в Подборе»). Можно прямые и косвенные.
 - Пиши по-русски, конкретно и по делу.`
 }
 
@@ -228,8 +235,15 @@ function FitMeter({ label, dim, delay = 0 }: { label: string; dim: FitDim; delay
   )
 }
 
-function UniFitPanel({ uni }: { uni: University }) {
-  const [result, setResult] = useState<UniFitResult | null>(null)
+function UniFitPanel({
+  uni,
+  result,
+  setResult,
+}: {
+  uni: University
+  result: UniFitResult | null
+  setResult: (r: UniFitResult) => void
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
@@ -252,13 +266,15 @@ function UniFitPanel({ uni }: { uni: University }) {
         temperature: 0.4,
         maxTokens: 700,
       })
-      const obj = window.ai.extractJson(reply) as { uniToUser?: unknown; userToUni?: unknown; depends?: unknown } | null
+      const obj = window.ai.extractJson(reply) as { uniToUser?: unknown; userToUni?: unknown; nextSteps?: unknown } | null
       const a = (obj?.uniToUser ?? {}) as { score?: unknown; points?: unknown; summary?: unknown }
       const b = (obj?.userToUni ?? {}) as { score?: unknown; points?: unknown; summary?: unknown }
       setResult({
         uniToUser: { score: clampScore(a.score), points: toPoints(a) },
         userToUni: { score: clampScore(b.score), points: toPoints(b) },
-        depends: Array.isArray(obj?.depends) ? (obj?.depends as unknown[]).map((d) => endash(String(d))) : [],
+        nextSteps: Array.isArray(obj?.nextSteps)
+          ? (obj?.nextSteps as unknown[]).map((d) => endash(String(d))).filter(Boolean).slice(0, 5)
+          : [],
       })
     } catch {
       setError(true)
@@ -295,19 +311,6 @@ function UniFitPanel({ uni }: { uni: University }) {
         <div className="flex flex-col gap-5">
           <FitMeter label="Вуз подходит тебе" dim={result.uniToUser} />
           <FitMeter label="Ты подходишь вузу" dim={result.userToUni} delay={0.1} />
-          {result.depends.length > 0 && (
-            <div className="rounded-xl border border-border bg-bg/40 p-3">
-              <div className="mb-1.5 text-xs font-semibold tracking-widest text-fg-muted uppercase">Чтобы точнее определить</div>
-              <ul className="flex flex-col gap-1.5">
-                {result.depends.map((d, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-fg-muted">
-                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
-                    <span>{d}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <Button variant="ghost" size="sm" className="w-full" onClick={run} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
             Пересчитать
@@ -319,16 +322,24 @@ function UniFitPanel({ uni }: { uni: University }) {
 }
 
 const ADVICE = [
-  "Эссе начинай за 2–3 месяца до дедлайна: черновики и правки занимают больше времени, чем кажется.",
-  "Заявку на грант подавай параллельно с вузом: сроки часто не совпадают.",
-  "Дедлайны бери из официального письма или сайта вуза, а не из чужих таблиц.",
+  "Собери список: добавь 8–12 программ в «Подобрать программу».",
+  "Построй роадмап по этапам в «Мои программы → Приоритеты».",
+  "Готовь эссе под программу в «Редакторе эссе».",
+  "Заполни «Резюме» и добавь измеримые результаты.",
 ]
 
-function AdvicePanel() {
+function AdvicePanel({ fit }: { fit: UniFitResult | null }) {
+  const tailored = Boolean(fit && fit.nextSteps.length)
+  const items = tailored ? fit!.nextSteps : ADVICE
   return (
     <Panel icon={Calendar} title="С чего начать">
+      {!tailored && (
+        <p className="mb-2.5 text-xs leading-relaxed text-fg-faint">
+          Рассчитай Uni-fit, и здесь появятся шаги под твой профиль. Пока общие:
+        </p>
+      )}
       <ul className="flex flex-col gap-2.5">
-        {ADVICE.map((a, i) => (
+        {items.map((a, i) => (
           <motion.li
             key={i}
             initial={{ opacity: 0, x: -6 }}
@@ -573,6 +584,9 @@ export default function Detail({
   const it = item
   const uniGrants = "program" in it ? grantsForUni(it) : []
   const content = UNI_CONTENT[it.id]
+  // Uni-fit result lives here so «С чего начать» can show the same AI recommendations.
+  const [fit, setFit] = useState<UniFitResult | null>(null)
+  useEffect(() => setFit(null), [it.id])
 
   // Full report blocks are code-split – load on demand for this uni.
   const [blocks, setBlocks] = useState<RichBlock[] | null>(null)
@@ -700,12 +714,12 @@ export default function Detail({
       {/* Uni-fit + «С чего начать» – up top, collapsible */}
       {"program" in it ? (
         <motion.div variants={fadeUp} className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <UniFitPanel uni={it} />
-          <AdvicePanel />
+          <UniFitPanel uni={it} result={fit} setResult={setFit} />
+          <AdvicePanel fit={fit} />
         </motion.div>
       ) : (
         <motion.div variants={fadeUp} className="mt-6">
-          <AdvicePanel />
+          <AdvicePanel fit={null} />
         </motion.div>
       )}
 
