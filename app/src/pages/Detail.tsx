@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion"
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Calendar,
   Check,
+  ChevronDown,
   Heart,
   Loader2,
   Minus,
@@ -76,9 +77,13 @@ interface OnbProfile {
   level?: string[]
   grant?: boolean
 }
+interface FitDim {
+  score: number
+  points: string[]
+}
 interface UniFitResult {
-  uniToUser: { score: number; summary: string }
-  userToUni: { score: number; summary: string }
+  uniToUser: FitDim
+  userToUni: FitDim
   depends: string[]
 }
 
@@ -86,8 +91,16 @@ const clampScore = (v: unknown): number => {
   const n = Math.round(Number(v))
   return isFinite(n) ? Math.max(0, Math.min(100, n)) : 0
 }
-// Normalise any em-dashes the model returns to the app's en-dash style.
-const endash = (s: string): string => s.replace(/—/g, "–")
+// Normalise em-dashes the model may return to the app's en-dash style.
+// Built from char codes (0x2014 -> 0x2013) so a literal-dash sweep can't break it.
+const EM_DASH = String.fromCharCode(0x2014)
+const EN_DASH = String.fromCharCode(0x2013)
+const endash = (s: string): string => s.split(EM_DASH).join(EN_DASH)
+const toPoints = (x: { points?: unknown; summary?: unknown }): string[] => {
+  if (Array.isArray(x.points)) return x.points.map((p) => endash(String(p))).filter(Boolean).slice(0, 5)
+  if (typeof x.summary === "string" && x.summary.trim()) return [endash(x.summary.trim())]
+  return []
+}
 
 function buildUniFitPrompt(u: University, p: OnbProfile | null, essay: string, resume: Achievement[]): string {
   const prof = p || {}
@@ -95,7 +108,7 @@ function buildUniFitPrompt(u: University, p: OnbProfile | null, essay: string, r
     ? resume.map((a, i) => `${i + 1}. ${a.title} – ${a.org}. ${a.desc} [${(a.skills || []).join(", ")}]`).join("\n")
     : "(резюме пустое)"
   return `Ты консультант по поступлению в зарубежные вузы. Оцени взаимное соответствие («Uni-fit») студента и вуза по двум направлениям. Верни ТОЛЬКО JSON без markdown:
-{"uniToUser":{"score":0-100,"summary":"1-2 предложения"},"userToUni":{"score":0-100,"summary":"1-2 предложения"},"depends":["чего не хватает для точной оценки"]}
+{"uniToUser":{"score":0-100,"points":["краткий фактор 4-9 слов","ещё один"]},"userToUni":{"score":0-100,"points":["..."]},"depends":["чего не хватает для точной оценки"]}
 
 ВУЗ: ${u.name}, ${u.city}, ${u.country}. Программа: ${u.program} (${u.degree}), направление: ${u.field}. Язык обучения: ${u.language}. Стоимость: ${u.tuition}. Требования: оценки ${u.gpa}, язык ${u.ielts}. Стипендии: ${u.scholarship ? "есть" : "нет"}.
 
@@ -109,26 +122,110 @@ ${resumeText}
 Правила:
 - uniToUser (насколько вуз подходит студенту): по совпадению направления, страны, уровня, бюджета, языка обучения и потребности в стипендии.
 - userToUni (насколько студент подходит вузу): по среднему баллу, английскому, КАЧЕСТВУ эссе и силе резюме относительно конкурентности программы.
-- Если эссе не написано или резюме пустое – снизь уверенность в userToUni и обязательно перечисли это простыми словами в "depends" (например: «эссе для этой программы не написано», «резюме пустое»).
+- В «points» дай по 2-3 кратких пункта на каждое направление (4-9 слов каждый), без воды.
+- Если эссе не написано или резюме пустое – снизь уверенность в userToUni и перечисли это простыми словами в "depends" (например: «эссе для этой программы не написано», «резюме пустое»).
 - Пиши по-русски, конкретно и по делу.`
 }
 
-function FitBar({ label, score, summary, className }: { label: string; score: number; summary: string; className?: string }) {
+/* small animated count-up for scores */
+function CountUp({ to }: { to: number }) {
+  const reduced = useReducedMotion()
+  const [n, setN] = useState(reduced ? to : 0)
+  useEffect(() => {
+    if (reduced) {
+      setN(to)
+      return
+    }
+    const controls = animate(0, to, { duration: 0.8, ease: EASE, onUpdate: (v) => setN(Math.round(v)) })
+    return () => controls.stop()
+  }, [to, reduced])
+  return <>{n}</>
+}
+
+/* collapsible, bright panel */
+function Panel({
+  icon: Icon,
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className={className}>
+    <Card className="h-fit gap-0 overflow-hidden border-accent/25 bg-accent-soft p-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-5 py-4 text-left outline-none transition-colors hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-accent/60"
+      >
+        <Icon className="size-4 shrink-0 text-accent-text" />
+        <strong className="flex-1 text-sm font-semibold text-accent-text">{title}</strong>
+        <ChevronDown
+          className={cn("size-4 shrink-0 text-fg-muted transition-transform duration-300", open && "rotate-180")}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  )
+}
+
+/* one fit dimension: animated score + bar + bullet points */
+function FitMeter({ label, dim, delay = 0 }: { label: string; dim: FitDim; delay?: number }) {
+  return (
+    <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-medium">{label}</span>
-        <span className="text-sm font-bold text-accent-text">{score}/100</span>
+        <span className="text-[13px] font-semibold">{label}</span>
+        <span className="text-lg font-bold text-accent-text">
+          <CountUp to={dim.score} />
+          <span className="text-xs font-medium text-fg-muted">/100</span>
+        </span>
       </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-fg/10">
-        <div className="h-full rounded-full bg-accent" style={{ width: `${score}%` }} />
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-fg/10">
+        <motion.div
+          className="h-full rounded-full bg-accent"
+          initial={{ width: 0 }}
+          animate={{ width: `${dim.score}%` }}
+          transition={{ duration: 0.8, ease: EASE, delay }}
+        />
       </div>
-      {summary && <p className="mt-1.5 text-[13px] leading-relaxed text-fg-muted">{summary}</p>}
+      {dim.points.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2">
+          {dim.points.map((p, i) => (
+            <motion.li
+              key={i}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25, ease: EASE, delay: delay + 0.15 + i * 0.07 }}
+              className="flex items-start gap-2.5 text-[13px] leading-relaxed text-fg-muted"
+            >
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent-text" />
+              <span>{p}</span>
+            </motion.li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
 
-function UniFitCard({ uni }: { uni: University }) {
+function UniFitPanel({ uni }: { uni: University }) {
   const [result, setResult] = useState<UniFitResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -153,17 +250,16 @@ function UniFitCard({ uni }: { uni: University }) {
     try {
       const reply = await window.ai.complete(buildUniFitPrompt(uni, profile, essay, resume), {
         temperature: 0.4,
-        maxTokens: 600,
+        maxTokens: 700,
       })
-      const obj = window.ai.extractJson(reply) as Partial<UniFitResult> | null
-      const a = (obj?.uniToUser ?? {}) as { score?: unknown; summary?: unknown }
-      const b = (obj?.userToUni ?? {}) as { score?: unknown; summary?: unknown }
+      const obj = window.ai.extractJson(reply) as { uniToUser?: unknown; userToUni?: unknown; depends?: unknown } | null
+      const a = (obj?.uniToUser ?? {}) as { score?: unknown; points?: unknown; summary?: unknown }
+      const b = (obj?.userToUni ?? {}) as { score?: unknown; points?: unknown; summary?: unknown }
       setResult({
-        uniToUser: { score: clampScore(a.score), summary: endash(String(a.summary ?? "")) },
-        userToUni: { score: clampScore(b.score), summary: endash(String(b.summary ?? "")) },
-        depends: Array.isArray(obj?.depends) ? obj!.depends!.map((d) => endash(String(d))) : [],
+        uniToUser: { score: clampScore(a.score), points: toPoints(a) },
+        userToUni: { score: clampScore(b.score), points: toPoints(b) },
+        depends: Array.isArray(obj?.depends) ? (obj?.depends as unknown[]).map((d) => endash(String(d))) : [],
       })
-
     } catch {
       setError(true)
     } finally {
@@ -172,15 +268,10 @@ function UniFitCard({ uni }: { uni: University }) {
   }
 
   return (
-    <Card className="gap-0 border-accent/20 bg-accent-soft p-6">
-      <div className="flex items-center gap-2">
-        <Target className="size-3.5 text-accent-text" />
-        <strong className="text-[13px] font-semibold text-accent-text">Uni-fit</strong>
-      </div>
-
+    <Panel icon={Target} title="Uni-fit">
       {!result ? (
         <>
-          <p className="mt-2.5 text-[13px] leading-relaxed text-fg-muted">
+          <p className="text-[13px] leading-relaxed text-fg-muted">
             ИИ оценит, насколько вуз подходит тебе и насколько ты подходишь вузу – по анкете, эссе и резюме.
           </p>
           {(!hasEssay || !hasResume) && (
@@ -201,31 +292,56 @@ function UniFitCard({ uni }: { uni: University }) {
           )}
         </>
       ) : (
-        <>
-          <FitBar
-            label="Вуз подходит тебе"
-            score={result.uniToUser.score}
-            summary={result.uniToUser.summary}
-            className="mt-3"
-          />
-          <FitBar
-            label="Ты подходишь вузу"
-            score={result.userToUni.score}
-            summary={result.userToUni.summary}
-            className="mt-4"
-          />
+        <div className="flex flex-col gap-5">
+          <FitMeter label="Вуз подходит тебе" dim={result.uniToUser} />
+          <FitMeter label="Ты подходишь вузу" dim={result.userToUni} delay={0.1} />
           {result.depends.length > 0 && (
-            <p className="mt-3 text-xs leading-relaxed text-fg-faint">
-              Точнее будет, если добавить: {result.depends.join(", ")}.
-            </p>
+            <div className="rounded-xl border border-border bg-bg/40 p-3">
+              <div className="mb-1.5 text-xs font-semibold tracking-widest text-fg-muted uppercase">Чтобы точнее</div>
+              <ul className="flex flex-col gap-1.5">
+                {result.depends.map((d, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-fg-muted">
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-          <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={run} disabled={loading}>
+          <Button variant="ghost" size="sm" className="w-full" onClick={run} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
             Пересчитать
           </Button>
-        </>
+        </div>
       )}
-    </Card>
+    </Panel>
+  )
+}
+
+const ADVICE = [
+  "Эссе начинай за 2–3 месяца до дедлайна: черновики и правки занимают больше времени, чем кажется.",
+  "Заявку на грант подавай параллельно с вузом: сроки часто не совпадают.",
+  "Дедлайны бери из официального письма или сайта вуза, а не из чужих таблиц.",
+]
+
+function AdvicePanel() {
+  return (
+    <Panel icon={Calendar} title="С чего начать">
+      <ul className="flex flex-col gap-2.5">
+        {ADVICE.map((a, i) => (
+          <motion.li
+            key={i}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25, ease: EASE, delay: 0.05 + i * 0.07 }}
+            className="flex items-start gap-2.5 text-[13px] leading-relaxed text-fg-muted"
+          >
+            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent-text" />
+            <span>{a}</span>
+          </motion.li>
+        ))}
+      </ul>
+    </Panel>
   )
 }
 
@@ -581,6 +697,18 @@ export default function Detail({
         </motion.div>
       )}
 
+      {/* Uni-fit + «С чего начать» – up top, collapsible */}
+      {"program" in it ? (
+        <motion.div variants={fadeUp} className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <UniFitPanel uni={it} />
+          <AdvicePanel />
+        </motion.div>
+      ) : (
+        <motion.div variants={fadeUp} className="mt-6">
+          <AdvicePanel />
+        </motion.div>
+      )}
+
       {/* body grid */}
       <div className="mt-8 grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         {/* left column */}
@@ -725,24 +853,6 @@ export default function Detail({
             </motion.div>
           )}
 
-          {"program" in it && (
-            <motion.div variants={fadeUp}>
-              <UniFitCard uni={it} />
-            </motion.div>
-          )}
-
-          <motion.div variants={fadeUp}>
-            <Card className="gap-0 border-accent/20 bg-accent-soft p-6">
-              <div className="flex items-center gap-2">
-                <Calendar className="size-3.5 text-accent-text" />
-                <strong className="text-[13px] font-semibold text-accent-text">С чего начать</strong>
-              </div>
-              <p className="mt-2.5 text-[13px] leading-relaxed text-fg-muted">
-                Начните мотивационное письмо за 2–3 месяца до дедлайна – на черновики и правки уходит больше времени,
-                чем кажется. Заявку на грант подавайте параллельно: сроки часто не совпадают с приёмом в вуз.
-              </p>
-            </Card>
-          </motion.div>
         </div>
       </div>
     </motion.div>
