@@ -88,6 +88,7 @@ interface Profile {
   gpaUnknown?: boolean
   english?: string
   cert?: string
+  certScore?: string
   fields?: string[]
   internships?: string[]
   countries?: string[]
@@ -1130,7 +1131,11 @@ export default function Onboarding({ onDone }: OnboardingProps) {
                 <Reveal open={Boolean(profile.cert)}>
                   <Input
                     value={certScore}
-                    onChange={(e) => setCertScore(numFilter(e.target.value))}
+                    onChange={(e) => {
+                      const v = numFilter(e.target.value)
+                      setCertScore(v)
+                      setProfile((p) => ({ ...p, certScore: v }))
+                    }}
                     placeholder="Балл"
                     inputMode="numeric"
                     className="mt-3 h-12 max-w-44 rounded-xl"
