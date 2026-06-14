@@ -272,8 +272,21 @@ function buildMatches(profile: Profile): MatchedProgram[] {
   const wantCountries = selCountries.filter((c) => COUNTRY_MAP[c]).map((c) => COUNTRY_MAP[c])
   const anyCountry = selCountries.indexOf("any") > -1 || wantCountries.length === 0
   const levels = profile.level || []
-  const budget = parseBudgetAmount(profile.budget)
-  const scored = data.universities.map((u) => {
+  // Budget is a HARD constraint, not just a tie-breaker: we never recommend a
+  // university the student can't afford. "Не знаю" / "Без ограничений" disable it.
+  const budget = profile.budgetUnknown ? Infinity : parseBudgetAmount(profile.budget)
+  const withinBudget = (max: number | undefined) =>
+    !isFinite(budget) || typeof max !== "number" || max <= budget
+
+  // Only ever consider affordable universities…
+  let pool = data.universities.filter((u) => withinBudget(u.tuitionMax))
+  // …but if the budget is so low that nothing qualifies (e.g. "Бесплатно"), fall
+  // back to the cheapest options instead of showing an empty or random list.
+  if (!pool.length) {
+    pool = [...data.universities].sort((a, b) => (a.tuitionMax || 0) - (b.tuitionMax || 0)).slice(0, 6)
+  }
+
+  const scored = pool.map((u) => {
     let score = 0
     const reasons: string[] = []
     const fieldHit = hasField && wantFields.some((w) => (u.field || "").indexOf(w) > -1)
@@ -301,14 +314,11 @@ function buildMatches(profile: Profile): MatchedProgram[] {
       score += 1
       reasons.push("есть стипендия")
     }
-    if (isFinite(budget) && u.tuitionMax && u.tuitionMax <= budget) {
-      score += 1
-      reasons.push("в бюджете")
-    }
     const hard = (!hasField || fieldHit) && (anyCountry || countryHit)
     return { u, score, reasons, hard: hard ? 1 : 0 }
   })
-  scored.sort((a, b) => b.hard - a.hard || b.score - a.score)
+  // Relevance first; among equally relevant options, cheaper first (budget-conscious).
+  scored.sort((a, b) => b.hard - a.hard || b.score - a.score || (a.u.tuitionMax || 0) - (b.u.tuitionMax || 0))
   const top = scored.slice(0, 6)
   const programs = top.map(({ u, reasons }) => ({
     id: u.id,
