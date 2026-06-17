@@ -14,14 +14,6 @@
  */
 export const SCREENS_AFTER_ONBOARDING_THRESHOLD = 4
 
-/**
- * Dwell-time fallback. Even without visiting SCREENS_AFTER_ONBOARDING_THRESHOLD
- * sections, show the popup this many seconds after the user is in the app
- * (post-onboarding) — so it reliably appears on a normal visit, not only after
- * heavy navigation. Set 0 to disable the timer (screen-count only).
- */
-export const SHOW_AFTER_SECONDS = 12
-
 /** One-time gate status, persisted across sessions. */
 export type WaitlistStatus = "unseen" | "dismissed" | "submitted"
 

@@ -4,7 +4,6 @@ import { usePersist } from "@/lib/persist"
 import {
   DISMISS_COOLDOWN_DAYS,
   SCREENS_AFTER_ONBOARDING_THRESHOLD,
-  SHOW_AFTER_SECONDS,
   WAITLIST_DISMISSED_AT_KEY,
   WAITLIST_SCREENS_KEY,
   WAITLIST_STATUS_KEY,
@@ -81,20 +80,8 @@ export function useWaitlistTrigger({
     setDismissedAt(() => null)
   }, [dismissedAt, setStatus, setDismissedAt])
 
-  // Dwell-time fallback: surface the popup after SHOW_AFTER_SECONDS in the app,
-  // so it reliably appears on a normal visit even without navigating `threshold`
-  // sections. The timer's setState runs in the (async) timeout callback — not
-  // synchronously in the effect body — so it's allowed. Re-armed each mount;
-  // cleared if the popup leaves the 'unseen' state or the component unmounts.
-  const [waited, setWaited] = useState(false)
-  useEffect(() => {
-    if (!enabled || status !== "unseen" || SHOW_AFTER_SECONDS <= 0) return
-    const id = setTimeout(() => setWaited(true), SHOW_AFTER_SECONDS * 1000)
-    return () => clearTimeout(id)
-  }, [enabled, status])
-
   const reachedThreshold = screens.length >= threshold
-  const autoEligible = enabled && status === "unseen" && (reachedThreshold || waited)
+  const autoEligible = enabled && reachedThreshold && status === "unseen"
 
   const isOpen = autoEligible || forcedOpen
 
