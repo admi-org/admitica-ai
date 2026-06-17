@@ -2,6 +2,9 @@ import { useEffect, useState } from "react"
 
 import { Sidebar } from "@/components/Sidebar"
 import SettingsDialog from "@/components/SettingsDialog"
+import { WaitlistPopup } from "@/components/waitlist/WaitlistPopup"
+import { WaitlistInvite } from "@/components/waitlist/WaitlistInvite"
+import { useWaitlistTrigger } from "@/components/waitlist/useWaitlistTrigger"
 import { ToastProvider } from "@/components/ui/toast"
 import { usePersist } from "@/lib/persist"
 import type { Tab } from "@/lib/nav"
@@ -36,6 +39,13 @@ export default function App() {
   const [detail, setDetail] = useState<AnyProgram | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [justOnboarded, setJustOnboarded] = useState(false)
+
+  // Waitlist popup: count unique screens AFTER onboarding (enabled = past the
+  // name gate). Called before the early return below so Rules of Hooks hold.
+  const waitlist = useWaitlistTrigger({
+    screen: detail ? "detail" : tab,
+    enabled: Boolean(name),
+  })
 
   const setTab = (t: Tab) => {
     setTabState(t)
@@ -156,6 +166,21 @@ export default function App() {
                 {tab === "resume" && <Resume />}
               </>
             )}
+
+            {/* Footer – visible on every screen (desktop + mobile). The privacy
+                link is built from the Vite base so it resolves on GitHub Pages
+                under any sub-path; opens the standalone static page in a new tab. */}
+            <footer className="mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border pt-6 text-xs text-fg-muted">
+              <span>© 2026 Admitica</span>
+              <a
+                href={`${import.meta.env.BASE_URL}privacy.html`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline-offset-2 transition-colors hover:text-fg hover:underline"
+              >
+                Политика конфиденциальности
+              </a>
+            </footer>
           </div>
         </main>
 
@@ -173,6 +198,13 @@ export default function App() {
           roadmaps={roadmaps}
           onReset={reset}
         />
+
+        {/* Waitlist popup – centered, NON-blocking ask ("did you like it?").
+            The invite's CTA opens the waitlist form (waitlist.html) in a new tab
+            and marks submitted; «Не сейчас» dismisses. */}
+        <WaitlistPopup open={waitlist.isOpen} onClose={waitlist.close} skipLabel="Не сейчас">
+          <WaitlistInvite onAccept={waitlist.markSubmitted} />
+        </WaitlistPopup>
       </div>
     </ToastProvider>
   )

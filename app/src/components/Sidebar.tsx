@@ -99,8 +99,7 @@ function NavContent({ tab, setTab, name, plan, onSettings }: SidebarProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* logo */}
-      <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
-        <span className="grid size-8 place-items-center rounded-xl bg-accent text-sm font-bold text-accent-fg">A</span>
+      <div className="flex items-center px-5 pt-6 pb-5">
         <span className="text-lg font-bold tracking-tight">
           Admitica<span className="text-accent-text">.</span>
         </span>
