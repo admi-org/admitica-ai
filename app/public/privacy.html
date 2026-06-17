@@ -7,15 +7,6 @@
   <meta name="description" content="Политика конфиденциальности Admitica: как обрабатываются персональные данные, цели, права субъекта и реквизиты оператора." />
   <meta name="robots" content="index, follow" />
 
-  <!-- Совпадает с приложением: тёмная тема по умолчанию, переключается через
-       admitica.theme в localStorage (тот же ключ, что у самого сайта). -->
-  <script>
-    try {
-      var t = JSON.parse(localStorage.getItem("admitica.theme"));
-      if (t === "light") document.documentElement.dataset.theme = "light";
-    } catch (e) {}
-  </script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -30,14 +21,6 @@
       --accent-fg:#04201d; --accent-text:#2dd4bf; --accent-glow:rgba(45,212,191,0.30);
       --radius:1.25rem;
       color-scheme: dark;
-    }
-    [data-theme="light"] {
-      --bg:#f3f7f6; --surface:#ffffff; --card:#ffffff; --card-2:#e9f1ef;
-      --border:rgba(12,40,36,0.10); --border-strong:rgba(12,40,36,0.18);
-      --fg:#0d1a18; --fg-muted:#4c5a58; --fg-faint:#7a8987;
-      --accent:#0d9488; --accent-soft:rgba(13,148,136,0.12);
-      --accent-fg:#ffffff; --accent-text:#0f766e; --accent-glow:rgba(13,148,136,0.18);
-      color-scheme: light;
     }
 
     * { box-sizing: border-box; }

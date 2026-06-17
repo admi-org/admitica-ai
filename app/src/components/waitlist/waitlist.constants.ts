@@ -65,5 +65,6 @@ export const CARD_MAX_HEIGHT_VH = 85
  */
 export const SHOW_CLOSE_ICON = false
 
-/** Clicking the blurred backdrop closes the modal. */
-export const CLOSE_ON_OUTSIDE_CLICK = true
+/** Clicking the blurred backdrop closes the modal. Off → only the buttons
+ *  («Не сейчас» / CTA) dismiss it; Esc is also disabled in WaitlistPopup. */
+export const CLOSE_ON_OUTSIDE_CLICK = false

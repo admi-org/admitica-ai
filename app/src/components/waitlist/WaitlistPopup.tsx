@@ -103,6 +103,9 @@ export function WaitlistPopup({
         <DialogPrimitive.Content
           aria-modal="true"
           aria-describedby={undefined}
+          // Close only via the buttons: block Esc here, and outside-click is
+          // gated by CLOSE_ON_OUTSIDE_CLICK (default off) in the onClick below.
+          onEscapeKeyDown={(e) => e.preventDefault()}
           className={cn(
             "fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 focus:outline-none",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-2",
